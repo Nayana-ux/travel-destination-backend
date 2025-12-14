@@ -1,0 +1,52 @@
+const express = require("express");
+const router = express.Router();
+const Destination = require("../models/Destination");
+
+router.post("/recommend", async (req, res) => {
+  try {
+    const { climate, budget, activities, duration } = req.body;
+
+    // ✅ 1. Input Validation (PRD: Security, Performance)
+    if (!climate || !budget || !activities || !duration) {
+      return res.status(400).json({
+        message: "All preference fields are required"
+      });
+    }
+
+    // Ensure activities is an array
+    if (!Array.isArray(activities)) {
+      return res.status(400).json({
+        message: "Activities must be an array"
+      });
+    }
+
+    // ✅ 2. Recommendation Logic
+    const results = await Destination.find({
+      climate,
+      budget,
+      duration,
+      activities: { $in: activities }
+    });
+
+    // ✅ 3. Empty Result Handling (PRD: Usability)
+    if (results.length === 0) {
+      return res.json({
+        message: "No destinations found for selected preferences",
+        data: []
+      });
+    }
+
+    // ✅ 4. Successful Response
+    res.json({
+      count: results.length,
+      data: results
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error"
+    });
+  }
+});
+
+module.exports = router;
