@@ -13,6 +13,8 @@ mongoose.connect(process.env.MONGO_URL)
 
   app.use("/api/auth", require("./routes/auth"));
   app.use("/api", require("./routes/recommend"));  // ✅ THIS LINE
+  app.use("/api/wishlist", require("./routes/wishlist"));
+
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
