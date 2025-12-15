@@ -1,52 +1,69 @@
 const express = require("express");
-const router = express.Router();
+const router = express.Router();   // ✅ THIS LINE WAS MISSING
 const Destination = require("../models/Destination");
 
 router.post("/recommend", async (req, res) => {
   try {
-    const { climate, budget, activities, duration } = req.body;
+    let { climate, budget, activities, duration } = req.body;
 
-    // ✅ 1. Input Validation (PRD: Security, Performance)
-    if (!climate || !budget || !activities || !duration) {
-      return res.status(400).json({
-        message: "All preference fields are required"
-      });
+    // 🔁 NORMALIZATION (Frontend → Backend)
+const climateMap = {
+  "🌿 Monsoon Escape": "moderate",
+  "🌤️ Mild & Pleasant": "moderate",
+  "☀️ Warm & Sunny": "hot",
+  "❄️ Cool & Mountain": "cold"
+};
+
+const budgetMap = {
+  "💸 Budget-Friendly": "low",
+  "💼 Comfortable": "medium",
+  "✨ Premium": "high"
+};
+
+const durationMap = {
+  "Weekend": "weekend",
+  "3–7 days": "3-7 days",
+  "3-7 days": "3-7 days",
+  "Long stay": "long stay"
+};
+
+const activityMap = {
+  "Beach": "beach",
+  "Trekking": "trekking",
+  "Adventure": "adventure",
+  "Culture": "culture"
+};
+
+// Apply normalization
+climate = climateMap[climate] || climate;
+budget = budgetMap[budget] || budget;
+duration = durationMap[duration] || duration;
+activities = activities?.map(a => activityMap[a] || a);
+
+
+    // Normalize values
+    climate = climateMap[climate] || climate;
+    budget = budgetMap[budget] || budget;
+    activities = activities?.map(a => activityMap[a] || a);
+    duration = duration?.toLowerCase();
+
+    // 🔍 Build query dynamically
+    let query = {};
+
+    if (climate) query.climate = climate;
+    if (budget) query.budget = budget;
+    if (duration) query.duration = duration;
+    if (activities && activities.length > 0) {
+      query.activities = { $in: activities };
     }
 
-    // Ensure activities is an array
-    if (!Array.isArray(activities)) {
-      return res.status(400).json({
-        message: "Activities must be an array"
-      });
-    }
+    const results = await Destination.find(query);
 
-    // ✅ 2. Recommendation Logic
-    const results = await Destination.find({
-      climate,
-      budget,
-      duration,
-      activities: { $in: activities }
-    });
-
-    // ✅ 3. Empty Result Handling (PRD: Usability)
-    if (results.length === 0) {
-      return res.json({
-        message: "No destinations found for selected preferences",
-        data: []
-      });
-    }
-
-    // ✅ 4. Successful Response
-    res.json({
-      count: results.length,
-      data: results
-    });
-
+    res.json(results);   // ✅ Always return array
   } catch (error) {
-    res.status(500).json({
-      message: "Internal server error"
-    });
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-module.exports = router;
+module.exports = router;   // ✅ ALSO REQUIRED
